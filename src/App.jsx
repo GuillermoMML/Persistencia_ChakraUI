@@ -1,5 +1,3 @@
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import { getPeople } from "./services/api";
 import {
   Box,
@@ -17,11 +15,27 @@ import { loadPeople, savePeople, loadQuery, saveQuery } from "./utils/storage";
 import { useEffect, useMemo, useState } from "react";
 //useMemo sirve para memorizar valores y evitar recalculos innecesarios
 
+
+/*
+La persistencia en React usando localStorage implica guardar el estado de la aplicación en el almacenamiento local del navegador.
+Esto permite que los datos persistan incluso después de que el usuario cierre o recargue la página web.
+
+Esto nos sirvirá para guardar la lista de personas y el texto del filtro de búsqueda. Y casos reales podrían ser:
+- Guardar las preferencias del usuario (tema, idioma).
+- Mantener el estado de un carrito de compras.
+- Recordar formularios parcialmente completados.
+
+Aunque navegemos fuera de la app y vovamos, los datos  siguirán ahi porque están en el localStorage del navegador, que es como
+una pequeña base de datos en el navegador, la unica forma de borrarlo es que el usuario lo haga manualmente o que el programa lo haga
+
+*/
 function App() {
 
   // 1) Estado inicial desde localStorage (sin efectos)
   const initialPeople = (() => {
     const local = loadPeople();
+
+    //COmo load people puuede devolver null, en nuestro caso lo pasamos como array ya que con null no podemos trabajar
     return Array.isArray(local) ? local : [];
   })();
 
@@ -40,7 +54,7 @@ function App() {
     };
 
     const nueva2 = {
-      id: Date.now() + 12, // id temporal
+      id: Date.now() + 12, 
       name: "Maria Lopez",
       email: "mariaLo@ejemplo.com",
       phone: "600 000 000",
@@ -133,7 +147,7 @@ function App() {
     );
   }
   return (
-    <Container maxW="container.lg" p={4}>
+    <Container  p={4}>
       <Heading mb={4}>Mi App con Persistencia</Heading>
       <Text>¡Hola, mundo!</Text>
 
@@ -170,7 +184,6 @@ function App() {
                 <Table.Cell>{p.name}</Table.Cell>
                 <Table.Cell>{p.email}</Table.Cell>
                 <Table.Cell>{p.phone}</Table.Cell>
-                <Table.Cell>{/* tus botones aquí */}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>

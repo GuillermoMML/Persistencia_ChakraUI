@@ -3,9 +3,6 @@ import {createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { ChakraProvider, defaultSystem  } from "@chakra-ui/react"
 
-
-
-
 /*
 
 # 1) Proyecto React con Vite
