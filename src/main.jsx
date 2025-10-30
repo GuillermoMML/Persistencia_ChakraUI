@@ -29,6 +29,7 @@ https://www.chakra-ui.com/docs/get-started/migration
 
 7) AHora para realizar la persistencia nos creamos nuestro api.js en services
 */
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ChakraProvider value={defaultSystem}>

@@ -9,15 +9,18 @@ import {
   VStack,
   HStack,
   Table,
+  Portal,
+  Checkbox,
+  Kbd,
+  ActionBar,
 } from "@chakra-ui/react";
+
+//https://chakra-ui.com/docs/components/table --> Action  Bar es la tabla que voy a utilizar
 import { loadPeople, savePeople, loadQuery, saveQuery } from "./utils/storage";
-
 import { useEffect, useMemo, useState } from "react";
-//useMemo sirve para memorizar valores y evitar recalculos innecesarios
+import MyActionBar from "./components/ui/MyActionBar";
 
-
-/*
-La persistencia en React usando localStorage implica guardar el estado de la aplicación en el almacenamiento local del navegador.
+/*La persistencia en React usando localStorage implica guardar el estado de la aplicación en el almacenamiento local del navegador.
 Esto permite que los datos persistan incluso después de que el usuario cierre o recargue la página web.
 
 Esto nos sirvirá para guardar la lista de personas y el texto del filtro de búsqueda. Y casos reales podrían ser:
@@ -30,7 +33,6 @@ una pequeña base de datos en el navegador, la unica forma de borrarlo es que el
 
 */
 function App() {
-
   // 1) Estado inicial desde localStorage (sin efectos)
   const initialPeople = (() => {
     const local = loadPeople();
@@ -39,11 +41,14 @@ function App() {
     return Array.isArray(local) ? local : [];
   })();
 
-
   //query -> estado del filtro de búsqueda, inicializado desde storage
   const [query, setQuery] = useState(loadQuery()); // filtro recordado
   const [personas, setPersonas] = useState(initialPeople);
-  const [isLoading,setIsLoading]= useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [selection, setSelection] = useState([]);
+  const hasSelection = selection.length > 0;
+
   // Acciones locales (no API) para practicar estado + persistencia
   function handleAdd() {
     const nueva = {
@@ -54,40 +59,51 @@ function App() {
     };
 
     const nueva2 = {
-      id: Date.now() + 12, 
+      id: Date.now() + 12,
       name: "Maria Lopez",
       email: "mariaLo@ejemplo.com",
       phone: "600 000 000",
     };
     setPersonas((prev) => [nueva2, ...prev]);
-  // Un solo setPersonas; el useEffect([personas]) salvará en localStorage
-  //setPersonas((prev) => [nueva, nueva2, ...prev]);
-
-    console.log("Añadida nueva persona",personas);
+    // Un solo setPersonas; el useEffect([personas]) salvará en localStorage
+    //setPersonas((prev) => [nueva, nueva2, ...prev]);
   }
 
 
-    // 5) Filtro: derivamos una "vista" filtrada sin tocar el array original
+  function onDelete(){
+    console.log(selection)
 
-    //utilizamos useMemo para memorizar el resultado del filtrado, es decir solo se recalcula cuando personas o query cambian
-    //useMemo principalmente se usa para optimizar el rendimiento evitando recalculos innecesarios, a diferencia de useEffect que 
-    // se usa para ejecutar efectos secundarios, por lo tanto cuando queremos derivar un valor basado en otros estados
-    //  y optimizar el rendimiento, useMemo es la opción adecuada.
+    if(!window.confirm(`Estas seguro que quieres borrar ${selection.length} registros`)) return;
+    //Eliminamos aquellas personas que no coincida con los id de nuestro selection
+    setPersonas(prev => prev.filter(p => !selection.includes(p.id)))
+    setSelection([])
+  }
 
-    //Luego q le hacemos trim y toLowerCase para evitar problemas con mayusculas y espacios
+  // 5) Filtro: derivamos una "vista" filtrada sin tocar el array original
+
+  //utilizamos useMemo para memorizar el resultado del filtrado, es decir solo se recalcula cuando personas o query cambian
+  //useMemo principalmente se usa para optimizar el rendimiento evitando recalculos innecesarios, a diferencia de useEffect que
+  // se usa para ejecutar efectos secundarios, por lo tanto cuando queremos derivar un valor basado en otros estados
+  //  y optimizar el rendimiento, useMemo es la opción adecuada.
+
+  //Luego q le hacemos trim y toLowerCase para evitar problemas con mayusculas y espacios
+
   const filtradas = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return personas;
-    return personas.filter((p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.email.toLowerCase().includes(q) ||
-      p.phone.toLowerCase().includes(q)
+    return personas.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q) ||
+        p.phone.toLowerCase().includes(q)
     );
   }, [personas, query]);
 
-  {/*Para saber de donde saco los estilos de los componenetes de chakra ui
+  {
+    /*Para saber de donde saco los estilos de los componenetes de chakra ui
   https://chakra-ui.com/docs/components/table --> EN ESTE CASO ES LA TABLA PERO BUSCAS POR COMPONENTES DE TU ELECCIÓN 
-  */}
+  */
+  }
 
   //Llegados a este punto ya tenemos que nuestra variable personas, guarda los datos de forma local pero no persistente,
   //para ello utilizamos useEffect para sincronizar el estado con localStorage
@@ -97,9 +113,7 @@ function App() {
   //Para visualizar los datos guardados, nos vamos al DevTools -> Application -> Local Storage -> seleccionamos nuestra web
   useEffect(() => {
     savePeople(personas);
-    console.log("Lista guardada en localStorage");
   }, [personas]);
-
 
   useEffect(() => {
     saveQuery(query);
@@ -109,16 +123,14 @@ function App() {
 
   useEffect(() => {
     async function loadInitial() {
-      try{
-        setIsLoading (true);
+      try {
+        setIsLoading(true);
 
         const local = loadPeople(); //Esto puede devolver null por lo tanto comprobamos antes que sea un array para poder cargar los datos
-        console.log("datos cargados de local", local);
-        if(Array.isArray(local) && local.length>0){
-          console.log("esto seteando")
+        if (Array.isArray(local) && local.length > 0) {
           setPersonas(local);
-        }else{
-          const data = await getPeople(); 
+        } else {
+          const data = await getPeople();
           const uux = data.map((u) => ({
             id: u.id,
             name: u.name ?? "Undefined", // El ?? sirve para valores null/undefined
@@ -128,17 +140,48 @@ function App() {
           setPersonas(uux);
           savePeople(uux); // guardamos la lista tras cargarla
         }
-      }catch(error){
+      } catch (error) {
         console.error("Error cargando personas:", error);
-      }finally{
-        setIsLoading (false);
+      } finally {
+        setIsLoading(false);
       }
     }
     loadInitial();
   }, []); // solo una vez al montar
 
+  const rows = filtradas.map((item) => (
+    <Table.Row
+      key={item.id}
+      data-selected={selection.includes(item.id) ? "" : undefined}
+    >
+      <Table.Cell>
+        <Checkbox.Root
+          size="sm"
+          top="0.5"
+          aria-label="Select row"
+          checked={selection.includes(item.id)}
+          onCheckedChange={(changes) => {
+            setSelection((prev) =>
+              changes.checked
+                ? [...prev, item.id]
+                : selection.filter((id) => id !== item.id)
+            );
+          }}
+        >
+          <Checkbox.HiddenInput />
+          <Checkbox.Control />
+        </Checkbox.Root>
+      </Table.Cell>
+      <Table.Cell>{item.id}</Table.Cell>
+      <Table.Cell>{item.name}</Table.Cell>
+      <Table.Cell>{item.email}</Table.Cell>
+      <Table.Cell>{item.phone}</Table.Cell>
+    </Table.Row>
+  ));
 
-  if(isLoading){
+  const indeterminate = hasSelection && selection.length < filtradas.length;
+
+  if (isLoading) {
     return (
       <Container maxW="container.lg" p={4} textAlign="center">
         <Heading mb={4}>Mi App con Persistencia</Heading>
@@ -147,11 +190,9 @@ function App() {
     );
   }
   return (
-    <Container  p={4}>
+    <Container p={4}>
       <Heading mb={4}>Mi App con Persistencia</Heading>
-      <Text>¡Hola, mundo!</Text>
-
-      <VStack align="stretch" spacing={4}> 
+      <VStack align="stretch" spacing={4}>
         {/* Barra de búsqueda + crear */}
         <HStack>
           <Input
@@ -166,29 +207,44 @@ function App() {
       </VStack>
       {/* Tabla responsive */}
       <Box borderWidth="1px" borderRadius="lg" overflowX="auto">
-        <Table.Root size="sm" variant="outline" striped interactive>
+        <Table.Root size="sm" striped interactive>
           <Table.Header>
             <Table.Row>
+              <Table.ColumnHeader w="6">
+                <Checkbox.Root
+                  size="sm"
+                  top="0.5"
+                  aria-label="Select all rows"
+                  checked={
+                    indeterminate ? "indeterminate" : selection.length > 0
+                  }
+                  onCheckedChange={(changes) => {
+                    setSelection(
+                      changes.checked ? filtradas.map((item) => item.id) : []
+                    );
+                  }}
+                >
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control />
+                </Checkbox.Root>
+              </Table.ColumnHeader>
               <Table.ColumnHeader>ID</Table.ColumnHeader>
-              <Table.ColumnHeader>Nombre</Table.ColumnHeader>
-              <Table.ColumnHeader>Email</Table.ColumnHeader>
-              <Table.ColumnHeader>Teléfono</Table.ColumnHeader>
-              <Table.ColumnHeader>Acciones</Table.ColumnHeader>
+              <Table.ColumnHeader _hover={{ bg: "teal.400" }}>
+                Nombre
+              </Table.ColumnHeader>
+              <Table.ColumnHeader _hover={{ bg: "teal.400" }}>
+                Email
+              </Table.ColumnHeader>
+              <Table.ColumnHeader _hover={{ bg: "teal.400" }}>
+                Teléfono
+              </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
 
-          <Table.Body>
-            {filtradas.map((p) => (
-              <Table.Row key={p.id}>
-                <Table.Cell>{p.id}</Table.Cell>
-                <Table.Cell>{p.name}</Table.Cell>
-                <Table.Cell>{p.email}</Table.Cell>
-                <Table.Cell>{p.phone}</Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
+          <Table.Body>{rows}</Table.Body>
         </Table.Root>
       </Box>
+      <MyActionBar hasSelection={hasSelection} selection={selection} onDelete={onDelete}/>
     </Container>
   );
 }
